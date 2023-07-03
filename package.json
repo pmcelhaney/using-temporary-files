@@ -1,0 +1,17 @@
+{
+  "name": "using-temporary-files",
+  "version": "1.0.0",
+  "description": "usingTemporaryFiles() - a utility for testing code that writes to the filesystem",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "lint": "eslint . --cache --fix",
+    "format": "prettier --loglevel warn --write \"**/*.{js,css,md}\""
+  },
+  "author": "Patrick McElhaney",
+  "license": "MIT",
+  "devDependencies": {
+    "eslint": "^8.44.0",
+    "prettier": "^2.8.8"
+  }
+}
