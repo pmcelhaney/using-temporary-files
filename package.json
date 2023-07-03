@@ -5,14 +5,18 @@
   "type": "module",
   "main": "./src/using-temporary-files.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "npm run test:jest --",
     "lint": "eslint . --cache --fix",
-    "format": "prettier --loglevel warn --write \"**/*.{js,css,md}\""
+    "format": "prettier --loglevel warn --write \"**/*.{js,css,md}\"",
+    "release": "npx changeset publish",
+    "test:jest": "node --experimental-vm-modules node_modules/jest/bin/jest.js"
   },
   "author": "Patrick McElhaney",
   "license": "MIT",
   "devDependencies": {
+    "@changesets/cli": "^2.26.2",
     "eslint": "^8.44.0",
+    "jest": "^29.5.0",
     "prettier": "^2.8.8"
   }
 }
