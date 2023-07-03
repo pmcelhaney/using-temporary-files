@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "usingTemporaryFiles() - a utility for testing code that writes to the file system",
   "type": "module",
+  "main": "./src/using-temporary-files.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "lint": "eslint . --cache --fix",
