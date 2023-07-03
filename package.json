@@ -1,7 +1,7 @@
 {
   "name": "using-temporary-files",
   "version": "1.0.0",
-  "description": "usingTemporaryFiles() - a utility for testing code that writes to the filesystem",
+  "description": "usingTemporaryFiles() - a utility for testing code that writes to the file system",
   "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
