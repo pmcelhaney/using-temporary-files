@@ -41,7 +41,7 @@ function createRemoveFunction(basePath) {
 	};
 }
 
-export async function usingTemporaryFiles(files, ...callbacks) {
+export async function usingTemporaryFiles(...callbacks) {
 	const baseDirectory = DEBUG
 		? nodePath.resolve(process.cwd(), "./")
 		: os.tmpdir();
@@ -51,24 +51,14 @@ export async function usingTemporaryFiles(files, ...callbacks) {
 	)}/`;
 
 	try {
-		const writes = Object.entries(files).map(async (entry) => {
-			const [filename, contents] = entry;
-			const filePath = nodePath.join(temporaryDirectory, filename);
-
-			await ensureDirectoryExists(filePath);
-			await fs.writeFile(filePath, contents);
-		});
-
-		await Promise.all(writes);
-
 		for (const callback of callbacks) {
-			await callback(temporaryDirectory, {
+			await callback({
 				add: createAddFunction(temporaryDirectory),
 				remove: createRemoveFunction(temporaryDirectory),
 				addDirectory: createAddDirectoryFunction(temporaryDirectory),
 
-				path(relativePath) {
-					return nodePath.join(temporaryDirectory, relativePath);
+				path(...relativePaths) {
+					return nodePath.join(temporaryDirectory, ...relativePaths);
 				},
 			});
 		}
