@@ -6,7 +6,7 @@
   "main": "./src/using-temporary-files.js",
   "scripts": {
     "test": "npm run test:jest --",
-    "lint": "eslint . --cache --fix",
+    "lint": "eslint .",
     "format": "prettier --loglevel warn --write \"**/*.{js,css,md}\"",
     "release": "npx changeset publish",
     "test:jest": "node --experimental-vm-modules node_modules/jest/bin/jest.js"
