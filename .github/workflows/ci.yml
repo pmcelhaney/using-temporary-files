@@ -1,8 +1,5 @@
-name: Node.js CI
+name: ci
 on:
-  push:
-    branches:
-      - "main"
   pull_request:
     branches:
       - "main"
@@ -12,7 +9,9 @@ jobs:
     strategy:
       matrix:
         node-version:
+          - 16.x
           - 18.x
+          - 20.x
     steps:
       - uses: actions/checkout@v2
       - name: Use Node.js ${{ matrix.node-version }}
