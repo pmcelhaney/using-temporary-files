@@ -14,13 +14,21 @@ jobs:
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v3
-
       - name: Setup Node
         uses: actions/setup-node@v3
         with:
           node-version: 20.x
           cache: npm
-
+      - name: Get Node Version
+        run: echo "::set-output name=version::$(node -v)"
+        id: node-version
+      - name: Cache node_modules
+        uses: actions/cache@v3
+        with:
+          path: "**/node_modules"
+          key: ${{ runner.os }}-${{ steps.node-version.outputs.version }}-${{ hashFiles('**/package-lock.json') }}
+      - name: Install Packages
+        run: npm ci
       - name: Create Release Pull Request or Publish to npm
         id: changesets
         uses: changesets/action@v1
