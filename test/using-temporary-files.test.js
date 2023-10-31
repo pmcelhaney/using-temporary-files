@@ -27,6 +27,17 @@ describe("usingTemporaryFiles", () => {
 		expect(timesCallbackCalled).toBe(1);
 	});
 
+	it("read a file", async () => {
+		let timesCallbackCalled = 0;
+		await usingTemporaryFiles(async ({ add, read }) => {
+			timesCallbackCalled++;
+			await add("file.txt", "Hello, world!");
+			expect(await read("file.txt")).toBe("Hello, world!");
+		});
+
+		expect(timesCallbackCalled).toBe(1);
+	});
+
 	it("add a directory", async () => {
 		let timesCallbackCalled = 0;
 		await usingTemporaryFiles(async ({ path, addDirectory }) => {
