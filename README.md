@@ -21,6 +21,7 @@ await usingTemporaryFiles(async ({ path, add, addDirectory, remove }) => {
   path("."); // full path to the temporary directory
   path("file.txt"); // full path to a particular file
   await add("file.txt", "content"); // add a file
+  const text = await read("file.txt" /*, encoding (optional) */); // read the contents of a file
   await addDirectory("dir"); // add a directory
   await remove("file.txt"); // remove a file
 });

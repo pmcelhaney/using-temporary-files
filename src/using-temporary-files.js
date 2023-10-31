@@ -41,6 +41,14 @@ function createRemoveFunction(basePath) {
 	};
 }
 
+function createReadFunction(basePath) {
+	return async function read(filePath, encoding = "utf8") {
+		const fullPath = nodePath.join(basePath, filePath);
+
+		return fs.readFile(fullPath, encoding);
+	};
+}
+
 export async function usingTemporaryFiles(...callbacks) {
 	const baseDirectory = DEBUG
 		? nodePath.resolve(process.cwd(), "./")
@@ -56,7 +64,7 @@ export async function usingTemporaryFiles(...callbacks) {
 				add: createAddFunction(temporaryDirectory),
 				remove: createRemoveFunction(temporaryDirectory),
 				addDirectory: createAddDirectoryFunction(temporaryDirectory),
-
+				read: createReadFunction(temporaryDirectory),
 				path(...relativePaths) {
 					return nodePath.join(temporaryDirectory, ...relativePaths);
 				},
