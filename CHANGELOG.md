@@ -1,5 +1,11 @@
 # using-temporary-files
 
+## 2.1.0
+
+### Minor Changes
+
+- 26a21d8: added a read() function
+
 ## 2.0.0
 
 ### Major Changes
