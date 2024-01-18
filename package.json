@@ -1,6 +1,6 @@
 {
   "name": "using-temporary-files",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "description": "usingTemporaryFiles() - a utility for testing code that accesses the file system",
   "type": "module",
   "main": "./src/using-temporary-files.js",
