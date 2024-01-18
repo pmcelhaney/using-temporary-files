@@ -56,7 +56,7 @@ export async function usingTemporaryFiles(...callbacks) {
 
 	const temporaryDirectory = `${await fs.mkdtemp(
 		nodePath.join(baseDirectory, "utf-")
-	)}/`;
+	)}`;
 
 	try {
 		for (const callback of callbacks) {
@@ -72,7 +72,16 @@ export async function usingTemporaryFiles(...callbacks) {
 		}
 	} finally {
 		if (!DEBUG) {
-			await fs.rm(temporaryDirectory, { recursive: true });
+			let retries = 3;
+
+			while (retries > 0) {
+				try {
+					await fs.rm(temporaryDirectory, { recursive: true });
+					break;
+				} catch {
+					retries -= 1;
+				}
+			}
 		}
 	}
 }
