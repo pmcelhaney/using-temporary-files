@@ -1,5 +1,5 @@
 {
-  "extends": "eslint:recommended",
+  "extends": ["hardcore", "hardcore/ts", "hardcore/node"],
   "env": {
     "node": true,
     "es6": true,

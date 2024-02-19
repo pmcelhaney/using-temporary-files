@@ -1,126 +1,132 @@
+/* eslint-disable n/no-sync */
 import fs from "node:fs";
-import path from "node:path";
+import nodePath from "node:path";
 
-import { usingTemporaryFiles } from "../src/using-temporary-files.js";
+import {usingTemporaryFiles} from "../src/using-temporary-files.js";
 
 describe("usingTemporaryFiles", () => {
-	it("add a file", async () => {
-		let timesCallbackCalled = 0;
-		await usingTemporaryFiles(async ({ path, add }) => {
-			await add("file.txt", "Hello, world!");
-			timesCallbackCalled++;
-			expect(fs.readFileSync(path("file.txt"), "utf8")).toBe("Hello, world!");
-		});
+    it("add a file", async () => {
+        let timesCallbackCalled = 0;
 
-		expect(timesCallbackCalled).toBe(1);
-	});
+        await usingTemporaryFiles(async ({add, path}) => {
+            await add("file.txt", "Hello, world!");
+            timesCallbackCalled+=1;
+            expect(fs.readFileSync(path("file.txt"), "utf8")).toBe("Hello, world!");
+        });
 
-	it("remove a file", async () => {
-		let timesCallbackCalled = 0;
-		await usingTemporaryFiles(async ({ path, add, remove }) => {
-			timesCallbackCalled++;
-			await add("file.txt", "Hello, world!");
-			await remove("file.txt");
-			expect(fs.existsSync(path("file.txt"))).toBe(false);
-		});
+        expect(timesCallbackCalled).toBe(1);
+    });
 
-		expect(timesCallbackCalled).toBe(1);
-	});
+    it("remove a file", async () => {
+        let timesCallbackCalled = 0;
 
-	it("read a file", async () => {
-		let timesCallbackCalled = 0;
-		await usingTemporaryFiles(async ({ add, read }) => {
-			timesCallbackCalled++;
-			await add("file.txt", "Hello, world!");
-			expect(await read("file.txt")).toBe("Hello, world!");
-		});
+        await usingTemporaryFiles(async ({add, path, remove}) => {
+            timesCallbackCalled+=1;
+            await add("file.txt", "Hello, world!");
+            await remove("file.txt");
+            expect(fs.existsSync(path("file.txt"))).toBe(false);
+        });
 
-		expect(timesCallbackCalled).toBe(1);
-	});
+        expect(timesCallbackCalled).toBe(1);
+    });
 
-	it("add a directory", async () => {
-		let timesCallbackCalled = 0;
-		await usingTemporaryFiles(async ({ path, addDirectory }) => {
-			timesCallbackCalled++;
-			await addDirectory("a/b/c");
+    it("read a file", async () => {
+        let timesCallbackCalled = 0;
 
-			expect(fs.existsSync(path("a"))).toBe(true);
-			expect(fs.existsSync(path("a/b"))).toBe(true);
-			expect(fs.existsSync(path("a/b/c"))).toBe(true);
-		});
+        await usingTemporaryFiles(async ({add, read}) => {
+            timesCallbackCalled+=1;
+            await add("file.txt", "Hello, world!");
+            expect(await read("file.txt")).toBe("Hello, world!");
+        });
 
-		expect(timesCallbackCalled).toBe(1);
-	});
+        expect(timesCallbackCalled).toBe(1);
+    });
 
-	it("add a file to a directory that doesn't exist", async () => {
-		let timesCallbackCalled = 0;
-		await usingTemporaryFiles(async ({ path, add }) => {
-			timesCallbackCalled++;
-			await add("path/to/file.txt", "Hello, world!");
+    it("add a directory", async () => {
+        let timesCallbackCalled = 0;
 
-			expect(fs.existsSync(path("path/to"))).toBe(true);
+        await usingTemporaryFiles(async ({addDirectory, path}) => {
+            timesCallbackCalled += 1;
+            await addDirectory("a/b/c");
 
-			expect(fs.readFileSync(path("path/to/file.txt"), "utf8")).toBe(
-				"Hello, world!"
-			);
-		});
+            expect(fs.existsSync(path("a"))).toBe(true);
+            expect(fs.existsSync(path("a/b"))).toBe(true);
+            expect(fs.existsSync(path("a/b/c"))).toBe(true);
+        });
 
-		expect(timesCallbackCalled).toBe(1);
-	});
+        expect(timesCallbackCalled).toBe(1);
+    });
 
-	it("remove the temporary directory when done", async () => {
-		let timesCallbackCalled = 0;
-		let temporaryDirectoryPath;
-		await usingTemporaryFiles(async ({ path }) => {
-			timesCallbackCalled++;
+    it("add a file to a directory that doesn't exist", async () => {
+        let timesCallbackCalled = 0;
 
-			temporaryDirectoryPath = path(".");
-			expect(fs.existsSync(temporaryDirectoryPath)).toBe(true);
-		});
+        await usingTemporaryFiles(async ({add, path}) => {
+            timesCallbackCalled+=1;
+            await add("path/to/file.txt", "Hello, world!");
 
-		expect(timesCallbackCalled).toBe(1);
-		expect(fs.existsSync(temporaryDirectoryPath)).toBe(false);
-	});
+            expect(fs.existsSync(path("path/to"))).toBe(true);
 
-	it("remove the temporary directory even if something goes wrong", async () => {
-		let timesCallbackCalled = 0;
-		let temporaryDirectoryPath;
+            expect(fs.readFileSync(path("path/to/file.txt"), "utf8")).toBe("Hello, world!");
+        });
 
-		try {
-			await usingTemporaryFiles(async ({ path }) => {
-				timesCallbackCalled++;
+        expect(timesCallbackCalled).toBe(1);
+    });
 
-				temporaryDirectoryPath = path(".");
+    it("remove the temporary directory when done", async () => {
+        let timesCallbackCalled = 0;
+        let temporaryDirectoryPath = "";
 
-				throw new Error("Oops!");
-			});
-		} catch {
-			// Ignore
-		}
+        await usingTemporaryFiles(({path}) => {
+            timesCallbackCalled+=1;
 
-		expect(timesCallbackCalled).toBe(1);
-		expect(fs.existsSync(temporaryDirectoryPath)).toBe(false);
-	});
+            temporaryDirectoryPath = path(".");
+            expect(fs.existsSync(temporaryDirectoryPath)).toBe(true);
+        });
 
-	it("calculate the full path to a file", async () => {
-		let timesCallbackCalled = 0;
-		let temporaryDirectoryPath;
-		let deepPath1 = "";
-		let deepPath2 = "";
+        expect(timesCallbackCalled).toBe(1);
+        expect(fs.existsSync(temporaryDirectoryPath)).toBe(false);
+    });
 
-		await usingTemporaryFiles(async ({ path }) => {
-			timesCallbackCalled++;
+    it("remove the temporary directory even if something goes wrong", async () => {
+        let timesCallbackCalled = 0;
+        let temporaryDirectoryPath = "";
 
-			temporaryDirectoryPath = path(".");
+        try {
+            await usingTemporaryFiles(({path}) => {
+                timesCallbackCalled+=1;
 
-			deepPath1 = path("a", "b", "c");
-			deepPath2 = path("a/b/c");
-		});
+                temporaryDirectoryPath = path(".");
 
-		const expected = path.join(temporaryDirectoryPath, "a", "b", "c");
+                throw new Error("Oops!");
+            });
+        } catch {
+            // Ignore
+}
 
-		expect(timesCallbackCalled).toBe(1);
-		expect(deepPath1).toBe(expected);
-		expect(deepPath2).toBe(expected);
-	});
+                expect(timesCallbackCalled).toBe(1);
+        expect(fs.existsSync(temporaryDirectoryPath)).toBe(false);
+    });
+
+    it("calculate the full path to a file", async () => {
+        let timesCallbackCalled = 0;
+        let temporaryDirectoryPath = "";
+        let deepPath1 = "";
+        let deepPath2 = "";
+
+        await usingTemporaryFiles(({path}) => {
+            timesCallbackCalled+=1;
+
+            temporaryDirectoryPath = path(".");
+
+            deepPath1 = path("a", "b", "c");
+            deepPath2 = path("a/b/c");
+        });
+
+        const expected = nodePath.join(temporaryDirectoryPath, "a", "b", "c");
+
+        expect(timesCallbackCalled).toBe(1);
+        expect(deepPath1).toBe(expected);
+        expect(deepPath2).toBe(expected);
+    });
 });
+
