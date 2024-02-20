@@ -7,6 +7,10 @@
   },
   "parserOptions": {
     "ecmaVersion": 2022,
-    "sourceType": "module"
+    "sourceType": "module",
+    "project": "tsconfig.eslint.json"
+  },
+  "rules": {
+    "import/extensions": "off"
   }
 }

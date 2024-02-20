@@ -1,12 +1,44 @@
+/* eslint-disable total-functions/no-unsafe-readonly-mutable-assignment */
+/* eslint-disable @typescript-eslint/naming-convention */
 /* eslint-disable no-await-in-loop */
 import { constants as fsConstants } from "node:fs";
 import fs from "node:fs/promises";
 import os from "node:os";
 import nodePath from "node:path";
 
-const DEBUG = false;
+type BufferEncoding =
+  | "ascii"
+  | "base64"
+  | "base64url"
+  | "binary"
+  | "hex"
+  | "latin1"
+  | "ucs-2"
+  | "ucs2"
+  // eslint-disable-next-line unicorn/text-encoding-identifier-case
+  | "utf-8"
+  | "utf-16le"
+  | "utf8"
+  | "utf16le";
 
-async function ensureDirectoryExists(filePath) {
+const RETRIES = 5;
+const RETRY_TIMEOUT_MILLISECONDS = 200;
+
+// eslint-disable-next-line n/no-process-env
+const DEBUG = process.env.USING_TEMPORARY_FILES_DEBUG === "1";
+
+interface Operations {
+  add: (path: string, contents: string) => Promise<void>;
+  addDirectory: (path: string) => Promise<void>;
+  path: (relativePaths: string) => string;
+  read: (path: string) => Promise<string>;
+  remove: (path: string) => Promise<void>;
+}
+
+// eslint-disable-next-line etc/prefer-interface
+type Callback = (operations: Readonly<Operations>) => Promise<void>;
+
+async function ensureDirectoryExists(filePath: string) {
   const directory = nodePath.dirname(filePath);
 
   try {
@@ -18,8 +50,8 @@ async function ensureDirectoryExists(filePath) {
   }
 }
 
-function createAddFunction(basePath) {
-  return async function add(filePath, content) {
+function createAddFunction(basePath: string) {
+  return async function add(filePath: string, content: string) {
     const fullPath = nodePath.join(basePath, filePath);
 
     await ensureDirectoryExists(fullPath);
@@ -27,8 +59,8 @@ function createAddFunction(basePath) {
   };
 }
 
-function createAddDirectoryFunction(basePath) {
-  return async function addDirectory(filePath) {
+function createAddDirectoryFunction(basePath: string) {
+  return async function addDirectory(filePath: string) {
     const fullPath = nodePath.join(basePath, filePath);
 
     await fs.mkdir(fullPath, {
@@ -37,8 +69,8 @@ function createAddDirectoryFunction(basePath) {
   };
 }
 
-function createRemoveFunction(basePath) {
-  return async function remove(filePath) {
+function createRemoveFunction(basePath: string) {
+  return async function remove(filePath: string) {
     const fullPath = nodePath.join(basePath, filePath);
 
     await ensureDirectoryExists(fullPath);
@@ -46,16 +78,19 @@ function createRemoveFunction(basePath) {
   };
 }
 
-function createReadFunction(basePath) {
-  return async function read(filePath, encoding = "utf8") {
+function createReadFunction(basePath: string) {
+  return async function read(
+    filePath: string,
+    encoding: BufferEncoding = "utf8"
+  ) {
     const fullPath = nodePath.join(basePath, filePath);
 
-    return fs.readFile(fullPath, encoding);
+    return await fs.readFile(fullPath, encoding);
   };
 }
 
 // eslint-disable-next-line max-statements
-export async function usingTemporaryFiles(...callbacks) {
+export async function usingTemporaryFiles(...callbacks: Readonly<Callback[]>) {
   const baseDirectory = DEBUG
     ? nodePath.resolve(process.cwd(), "./")
     : os.tmpdir();
@@ -71,7 +106,7 @@ export async function usingTemporaryFiles(...callbacks) {
         add: createAddFunction(temporaryDirectory),
         addDirectory: createAddDirectoryFunction(temporaryDirectory),
 
-        path(...relativePaths) {
+        path(...relativePaths: Readonly<string[]>) {
           return nodePath.join(temporaryDirectory, ...relativePaths);
         },
 
@@ -80,7 +115,7 @@ export async function usingTemporaryFiles(...callbacks) {
       });
     }
   } finally {
-    let retries = 5;
+    let retries = RETRIES;
 
     while (retries > 0) {
       try {
@@ -92,7 +127,7 @@ export async function usingTemporaryFiles(...callbacks) {
       } catch {
         // eslint-disable-next-line promise/avoid-new, compat/compat
         await new Promise((resolve) => {
-          setTimeout(resolve, 200);
+          setTimeout(resolve, RETRY_TIMEOUT_MILLISECONDS);
         });
         retries -= 1;
       }
