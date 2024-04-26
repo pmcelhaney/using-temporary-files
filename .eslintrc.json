@@ -1,5 +1,5 @@
 {
-  "extends": "eslint:recommended",
+  "extends": ["hardcore", "hardcore/ts", "hardcore/node"],
   "env": {
     "node": true,
     "es6": true,
@@ -7,6 +7,10 @@
   },
   "parserOptions": {
     "ecmaVersion": 2022,
-    "sourceType": "module"
+    "sourceType": "module",
+    "project": "tsconfig.eslint.json"
+  },
+  "rules": {
+    "import/extensions": "off"
   }
 }
