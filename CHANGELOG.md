@@ -1,5 +1,11 @@
 # using-temporary-files
 
+## 2.2.1
+
+### Patch Changes
+
+- b6b3e9c: forgot to build the package in CI
+
 ## 2.2.0
 
 ### Minor Changes
