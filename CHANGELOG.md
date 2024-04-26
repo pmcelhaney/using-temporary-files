@@ -1,5 +1,11 @@
 # using-temporary-files
 
+## 2.2.0
+
+### Minor Changes
+
+- 4ad230d: converted to TypeScript
+
 ## 2.1.1
 
 ### Patch Changes
