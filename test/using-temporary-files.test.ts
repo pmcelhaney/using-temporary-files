@@ -13,6 +13,19 @@ const asyncDisposeSymbol =
   symbolConstructor.asyncDispose ?? Symbol.for("Symbol.asyncDispose");
 const disposeSymbol = symbolConstructor.dispose ?? Symbol.for("Symbol.dispose");
 
+async function waitForPathToDisappear(path: string, retries = 20) {
+  if (!fs.existsSync(path) || retries === 0) {
+    return;
+  }
+
+  // eslint-disable-next-line promise/avoid-new, compat/compat
+  await new Promise((resolve) => {
+    setTimeout(resolve, 10);
+  });
+
+  await waitForPathToDisappear(path, retries - 1);
+}
+
 describe("usingTemporaryFiles", () => {
   it("add a file", async () => {
     let timesCallbackCalled = 0;
@@ -164,7 +177,7 @@ describe("temporaryFiles", () => {
 
     await files.add("file.txt", "Hello, world!");
     files.dispose();
-    await files.asyncDispose();
+    await waitForPathToDisappear(temporaryDirectory);
 
     expect(fs.existsSync(temporaryDirectory)).toBe(false);
   });

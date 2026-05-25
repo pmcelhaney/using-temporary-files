@@ -188,7 +188,13 @@ function createTemporaryFilesResource() {
   }
 
   async function asyncDispose() {
-    disposed ||= true;
+    if (disposed) {
+      await cleanupPromise;
+
+      return;
+    }
+
+    disposed = true;
 
     queueCleanup();
     await cleanupPromise;
@@ -202,7 +208,6 @@ function createTemporaryFilesResource() {
     disposed = true;
     queueCleanup();
   }
-
 
   const resource: DisposableOperations = {
     ...operations,

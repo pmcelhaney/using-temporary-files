@@ -118,7 +118,11 @@ function createTemporaryFilesResource() {
         cleanupPromise = removeTemporaryDirectoryWhenReady(ready, temporaryDirectory);
     }
     async function asyncDispose() {
-        disposed ||= true;
+        if (disposed) {
+            await cleanupPromise;
+            return;
+        }
+        disposed = true;
         queueCleanup();
         await cleanupPromise;
     }
