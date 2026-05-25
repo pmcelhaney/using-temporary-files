@@ -2,7 +2,16 @@
 import fs from "node:fs";
 import nodePath from "node:path";
 
-import { usingTemporaryFiles } from "../src/using-temporary-files.js";
+import {
+  temporaryFiles,
+  usingTemporaryFiles,
+} from "../src/using-temporary-files.js";
+
+const symbolConstructor: Readonly<{ asyncDispose?: symbol; dispose?: symbol }> =
+  Symbol;
+const asyncDisposeSymbol =
+  symbolConstructor.asyncDispose ?? Symbol.for("Symbol.asyncDispose");
+const disposeSymbol = symbolConstructor.dispose ?? Symbol.for("Symbol.dispose");
 
 describe("usingTemporaryFiles", () => {
   it("add a file", async () => {
@@ -129,5 +138,45 @@ describe("usingTemporaryFiles", () => {
     expect(timesCallbackCalled).toBe(1);
     expect(deepPath1).toBe(expected);
     expect(deepPath2).toBe(expected);
+  });
+});
+
+describe("temporaryFiles", () => {
+  it("supports explicit resource management", async () => {
+    const files = temporaryFiles();
+    const temporaryDirectory = files.path(".");
+
+    expect(typeof files[disposeSymbol]).toBe("function");
+    expect(typeof files[asyncDisposeSymbol]).toBe("function");
+    expect(files[disposeSymbol]).toBe(files.dispose);
+    expect(files[asyncDisposeSymbol]).toBe(files.asyncDispose);
+
+    await files.add("file.txt", "Hello, world!");
+    expect(fs.readFileSync(files.path("file.txt"), "utf8")).toBe("Hello, world!");
+
+    await files.asyncDispose();
+    expect(fs.existsSync(temporaryDirectory)).toBe(false);
+  });
+
+  it("supports synchronous disposal", async () => {
+    const files = temporaryFiles();
+    const temporaryDirectory = files.path(".");
+
+    await files.add("file.txt", "Hello, world!");
+    files.dispose();
+    await files.asyncDispose();
+
+    expect(fs.existsSync(temporaryDirectory)).toBe(false);
+  });
+
+  it("is safe to dispose more than once", async () => {
+    const files = temporaryFiles();
+    const temporaryDirectory = files.path(".");
+
+    files.dispose();
+    files.dispose();
+    await files.asyncDispose();
+
+    expect(fs.existsSync(temporaryDirectory)).toBe(false);
   });
 });
