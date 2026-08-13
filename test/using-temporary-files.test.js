@@ -1,19 +1,19 @@
 /* eslint-disable n/no-sync */
+import assert from "node:assert/strict";
 import fs from "node:fs";
 import nodePath from "node:path";
+import { describe, it } from "node:test";
 
 import {
   temporaryFiles,
   usingTemporaryFiles,
-} from "../src/using-temporary-files.js";
+} from "../dist/using-temporary-files.js";
 
-const symbolConstructor: Readonly<{ asyncDispose?: symbol; dispose?: symbol }> =
-  Symbol;
 const asyncDisposeSymbol =
-  symbolConstructor.asyncDispose ?? Symbol.for("Symbol.asyncDispose");
-const disposeSymbol = symbolConstructor.dispose ?? Symbol.for("Symbol.dispose");
+  Symbol.asyncDispose ?? Symbol.for("Symbol.asyncDispose");
+const disposeSymbol = Symbol.dispose ?? Symbol.for("Symbol.dispose");
 
-async function waitForPathToDisappear(path: string, retries = 20) {
+async function waitForPathToDisappear(path, retries = 20) {
   if (!fs.existsSync(path) || retries === 0) {
     return;
   }
@@ -33,10 +33,13 @@ describe("usingTemporaryFiles", () => {
     await usingTemporaryFiles(async ({ add, path }) => {
       await add("file.txt", "Hello, world!");
       timesCallbackCalled += 1;
-      expect(fs.readFileSync(path("file.txt"), "utf8")).toBe("Hello, world!");
+      assert.strictEqual(
+        fs.readFileSync(path("file.txt"), "utf8"),
+        "Hello, world!"
+      );
     });
 
-    expect(timesCallbackCalled).toBe(1);
+    assert.strictEqual(timesCallbackCalled, 1);
   });
 
   it("remove a file", async () => {
@@ -46,10 +49,10 @@ describe("usingTemporaryFiles", () => {
       timesCallbackCalled += 1;
       await add("file.txt", "Hello, world!");
       await remove("file.txt");
-      expect(fs.existsSync(path("file.txt"))).toBe(false);
+      assert.strictEqual(fs.existsSync(path("file.txt")), false);
     });
 
-    expect(timesCallbackCalled).toBe(1);
+    assert.strictEqual(timesCallbackCalled, 1);
   });
 
   it("read a file", async () => {
@@ -58,10 +61,10 @@ describe("usingTemporaryFiles", () => {
     await usingTemporaryFiles(async ({ add, read }) => {
       timesCallbackCalled += 1;
       await add("file.txt", "Hello, world!");
-      expect(await read("file.txt")).toBe("Hello, world!");
+      assert.strictEqual(await read("file.txt"), "Hello, world!");
     });
 
-    expect(timesCallbackCalled).toBe(1);
+    assert.strictEqual(timesCallbackCalled, 1);
   });
 
   it("add a directory", async () => {
@@ -71,12 +74,12 @@ describe("usingTemporaryFiles", () => {
       timesCallbackCalled += 1;
       await addDirectory("a/b/c");
 
-      expect(fs.existsSync(path("a"))).toBe(true);
-      expect(fs.existsSync(path("a/b"))).toBe(true);
-      expect(fs.existsSync(path("a/b/c"))).toBe(true);
+      assert.strictEqual(fs.existsSync(path("a")), true);
+      assert.strictEqual(fs.existsSync(path("a/b")), true);
+      assert.strictEqual(fs.existsSync(path("a/b/c")), true);
     });
 
-    expect(timesCallbackCalled).toBe(1);
+    assert.strictEqual(timesCallbackCalled, 1);
   });
 
   it("add a file to a directory that doesn't exist", async () => {
@@ -86,14 +89,14 @@ describe("usingTemporaryFiles", () => {
       timesCallbackCalled += 1;
       await add("path/to/file.txt", "Hello, world!");
 
-      expect(fs.existsSync(path("path/to"))).toBe(true);
-
-      expect(fs.readFileSync(path("path/to/file.txt"), "utf8")).toBe(
+      assert.strictEqual(fs.existsSync(path("path/to")), true);
+      assert.strictEqual(
+        fs.readFileSync(path("path/to/file.txt"), "utf8"),
         "Hello, world!"
       );
     });
 
-    expect(timesCallbackCalled).toBe(1);
+    assert.strictEqual(timesCallbackCalled, 1);
   });
 
   it("remove the temporary directory when done", async () => {
@@ -104,11 +107,11 @@ describe("usingTemporaryFiles", () => {
       timesCallbackCalled += 1;
 
       temporaryDirectoryPath = path(".");
-      expect(fs.existsSync(temporaryDirectoryPath)).toBe(true);
+      assert.strictEqual(fs.existsSync(temporaryDirectoryPath), true);
     });
 
-    expect(timesCallbackCalled).toBe(1);
-    expect(fs.existsSync(temporaryDirectoryPath)).toBe(false);
+    assert.strictEqual(timesCallbackCalled, 1);
+    assert.strictEqual(fs.existsSync(temporaryDirectoryPath), false);
   });
 
   it("remove the temporary directory even if something goes wrong", async () => {
@@ -127,8 +130,8 @@ describe("usingTemporaryFiles", () => {
       // Ignore
     }
 
-    expect(timesCallbackCalled).toBe(1);
-    expect(fs.existsSync(temporaryDirectoryPath)).toBe(false);
+    assert.strictEqual(timesCallbackCalled, 1);
+    assert.strictEqual(fs.existsSync(temporaryDirectoryPath), false);
   });
 
   it("calculate the full path to a file", async () => {
@@ -148,9 +151,9 @@ describe("usingTemporaryFiles", () => {
 
     const expected = nodePath.join(temporaryDirectoryPath, "a", "b", "c");
 
-    expect(timesCallbackCalled).toBe(1);
-    expect(deepPath1).toBe(expected);
-    expect(deepPath2).toBe(expected);
+    assert.strictEqual(timesCallbackCalled, 1);
+    assert.strictEqual(deepPath1, expected);
+    assert.strictEqual(deepPath2, expected);
   });
 });
 
@@ -159,16 +162,19 @@ describe("temporaryFiles", () => {
     const files = temporaryFiles();
     const temporaryDirectory = files.path(".");
 
-    expect(typeof files[disposeSymbol]).toBe("function");
-    expect(typeof files[asyncDisposeSymbol]).toBe("function");
-    expect(files[disposeSymbol]).toBe(files.dispose);
-    expect(files[asyncDisposeSymbol]).toBe(files.asyncDispose);
+    assert.strictEqual(typeof files[disposeSymbol], "function");
+    assert.strictEqual(typeof files[asyncDisposeSymbol], "function");
+    assert.strictEqual(files[disposeSymbol], files.dispose);
+    assert.strictEqual(files[asyncDisposeSymbol], files.asyncDispose);
 
     await files.add("file.txt", "Hello, world!");
-    expect(fs.readFileSync(files.path("file.txt"), "utf8")).toBe("Hello, world!");
+    assert.strictEqual(
+      fs.readFileSync(files.path("file.txt"), "utf8"),
+      "Hello, world!"
+    );
 
     await files.asyncDispose();
-    expect(fs.existsSync(temporaryDirectory)).toBe(false);
+    assert.strictEqual(fs.existsSync(temporaryDirectory), false);
   });
 
   it("supports synchronous disposal", async () => {
@@ -179,7 +185,7 @@ describe("temporaryFiles", () => {
     files.dispose();
     await waitForPathToDisappear(temporaryDirectory);
 
-    expect(fs.existsSync(temporaryDirectory)).toBe(false);
+    assert.strictEqual(fs.existsSync(temporaryDirectory), false);
   });
 
   it("is safe to dispose more than once", async () => {
@@ -190,6 +196,6 @@ describe("temporaryFiles", () => {
     files.dispose();
     await files.asyncDispose();
 
-    expect(fs.existsSync(temporaryDirectory)).toBe(false);
+    assert.strictEqual(fs.existsSync(temporaryDirectory), false);
   });
 });

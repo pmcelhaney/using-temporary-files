@@ -2,8 +2,7 @@
   "extends": ["hardcore", "hardcore/ts", "hardcore/node"],
   "env": {
     "node": true,
-    "es6": true,
-    "jest": true
+    "es6": true
   },
   "parserOptions": {
     "ecmaVersion": 2022,
@@ -11,6 +10,13 @@
     "project": "tsconfig.eslint.json"
   },
   "rules": {
-    "import/extensions": "off"
+    "import/extensions": "off",
+    "import/no-unused-modules": [
+      "error",
+      {
+        "ignoreExports": ["src/using-temporary-files.ts"],
+        "unusedExports": true
+      }
+    ]
   }
 }
