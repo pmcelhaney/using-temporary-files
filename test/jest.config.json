@@ -1,5 +1,0 @@
-{
-  "transform": {
-    "^.+\\.(t|j|mj)s?$": "@swc/jest"
-  }
-}

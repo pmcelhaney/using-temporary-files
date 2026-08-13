@@ -29,6 +29,17 @@ await usingTemporaryFiles(async ({ path, add, addDirectory, read, remove }) => {
 });
 ```
 
+### Explicit resource management (`using`)
+
+```js copy
+import { temporaryFiles } from "using-temporary-files";
+
+using api = temporaryFiles();
+await api.add("file.txt", "Hello, world!");
+```
+
+`temporaryFiles()` returns an object with the same file operations as `usingTemporaryFiles()`, plus `Symbol.dispose` and `Symbol.asyncDispose` so it can be used with `using` / `await using`.
+
 ### Multiple callbacks
 
 `usingTemporaryFiles()` accepts any number of callbacks. They share the same temporary directory and are called in order.
