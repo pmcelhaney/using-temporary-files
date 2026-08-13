@@ -1,10 +1,10 @@
-# usingTemporaryFiles()
+# using-temporary-files
 
-A utility for working with tests that need to write to / read from the file system.
+A utility for working with tests that need to write to / read from the file system,
+using [explicit resource management](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Resource_management).
 
-It creates a temporary directory, copies the specified files into it, provides some functions
-for working with files in the temporary directory, and then deletes the directory
-when the callback returns or an error occurs.
+It creates a temporary directory, provides file operations for working in it, and
+deletes the directory when the resource is disposed.
 
 ## Installation
 
@@ -14,37 +14,58 @@ npm install --save-dev using-temporary-files
 
 ## Usage
 
-```js copy
-import { usingTemporaryFiles } from "using-temporary-files";
+### Explicit resource management (`temporaryFiles()`)
 
-await usingTemporaryFiles(async ({ path, add, addDirectory, read, remove }) => {
-  path("."); // full path to the temporary directory
-  path("file.txt"); // full path to a particular file
-  path("a", "b", "c"); // path segments are joined, e.g. "<tmpdir>/a/b/c"
-  await add("file.txt", "content"); // add a file (creates parent directories as needed)
-  const text = await read("file.txt"); // read the contents of a file (encoding defaults to "utf8")
-  const binary = await read("file.bin", "base64"); // read with a specific encoding
-  await addDirectory("dir"); // add a directory (creates parent directories as needed)
-  await remove("file.txt"); // remove a file
-});
-```
-
-### Explicit resource management (`using`)
+Use `temporaryFiles()` with JavaScript's `using` / `await using` declarations. The
+temporary directory is disposed automatically when the declaration's scope ends.
 
 ```js copy
 import { temporaryFiles } from "using-temporary-files";
 
-using api = temporaryFiles();
-await api.add("file.txt", "Hello, world!");
+async function example() {
+  await using files = temporaryFiles();
+
+  files.path("."); // full path to the temporary directory
+  files.path("file.txt"); // full path to a particular file
+  files.path("a", "b", "c"); // path segments are joined, e.g. "<tmpdir>/a/b/c"
+  await files.add("file.txt", "content"); // add a file (creates parent directories as needed)
+  const text = await files.read("file.txt"); // read the contents (encoding defaults to "utf8")
+  const binary = await files.read("file.bin", "base64"); // read with a specific encoding
+  await files.addDirectory("dir"); // add a directory (creates parent directories as needed)
+  await files.remove("file.txt"); // remove a file
+}
 ```
 
-`temporaryFiles()` returns an object with the same file operations as `usingTemporaryFiles()`, plus `Symbol.dispose` and `Symbol.asyncDispose` so it can be used with `using` / `await using`.
+`temporaryFiles()` returns an object with the file operations `path`, `add`,
+`addDirectory`, `read`, and `remove`, plus `dispose()` / `asyncDispose()` and
+`Symbol.dispose` / `Symbol.asyncDispose`.
 
-### Multiple callbacks
-
-`usingTemporaryFiles()` accepts any number of callbacks. They share the same temporary directory and are called in order.
+If `using` syntax is not available in your runtime, dispose the resource explicitly:
 
 ```js copy
+import { temporaryFiles } from "using-temporary-files";
+
+const files = temporaryFiles();
+
+try {
+  await files.add("file.txt", "Hello, world!");
+} finally {
+  await files.asyncDispose();
+}
+```
+
+### Deprecated: `usingTemporaryFiles()`
+
+`usingTemporaryFiles()` is deprecated. New code should use `temporaryFiles()` so
+resource ownership and cleanup are explicit. The callback API remains available for
+backward compatibility.
+
+It accepts any number of callbacks. They share the same temporary directory and are
+called in order; the directory is deleted after the callbacks complete or one throws.
+
+```js copy
+import { usingTemporaryFiles } from "using-temporary-files";
+
 await usingTemporaryFiles(
   async ({ add }) => {
     await add("file.txt", "Hello, world!");
@@ -66,14 +87,9 @@ USING_TEMPORARY_FILES_DEBUG=1 npm test
 ## Background
 
 This code was extracted from [Counterfact](https://github.com/pmcelhaney/counterfact) so that it can be
-used in other projects. The original function was named `withTemporaryFiles()`. It was renamed to
-`usingTemporaryFiles` so that it resembles the
-[Explicit Resource Management](https://github.com/tc39/proposal-explicit-resource-management) proposal.
+used in other projects. The original function was named `withTemporaryFiles()` and took a callback function. It was renamed to `usingTemporaryFiles()` in anticipation of Explicit Resource Management. Both are deprecated and will be removed in 3.0.
 
 To understand how it's used in practice, see the tests in [Counterfact](https://github.com/search?q=repo%3Apmcelhaney%2Fcounterfact%20withTemporaryFiles&type=code)
-
-Note that until I get around to updating Counterfact to use this package, the API for `withTemporaryFiles()`
-has a few minor differences. Mainly extra arguments that we can do without.
 
 ## FAQ
 
@@ -81,3 +97,6 @@ has a few minor differences. Mainly extra arguments that we can do without.
 
 Yes, it is. And that's what I do most of the time. But it's good to have a couple of end-to-end tests
 that exercise the real file system. This utility makes it easier to write those tests.
+
+Also, the advice about keeping the file system out of unit tests dates back to hard disk drives.
+Solid-state drives (SSDs) are much faster so the performance penalty is often small enough that it's not worth optimizing.
