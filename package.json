@@ -6,7 +6,9 @@
   "main": "./dist/using-temporary-files.js",
   "types": "./dist/using-temporary-files.d.ts",
   "scripts": {
-    "test": "npm run build && node --experimental-test-coverage --test",
+    "test": "npm run test:unit && npm run test:markdown",
+    "test:unit": "npm run build && node --experimental-test-coverage --test test/using-temporary-files.test.js",
+    "test:markdown": "npm run build && node --test test/markdown.test.mjs",
     "lint": "eslint .",
     "build": "tsc --declaration",
     "format": "prettier --loglevel warn --write \"**/*.{js,css,md}\"",

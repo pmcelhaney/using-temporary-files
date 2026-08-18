@@ -19,10 +19,13 @@ import { temporaryFiles } from "using-temporary-files";
 async function compileFixture() {
   await using files = temporaryFiles();
 
-  await files.add("src/message.txt", "Hello, world!");
+  await files.add(
+    "src/message.ts",
+    'export const message: string = "Hello, world!";\n'
+  );
   await compile(files.path("src"));
 
-  return await files.read("dist/message.txt");
+  return await files.read("dist/message.js");
 } // the temporary directory is removed here—even if compile() throws
 ```
 
@@ -55,6 +58,43 @@ For those tests, `using-temporary-files` provides:
 - predictable cleanup, even when the test fails;
 - concise setup helpers that create parent directories as needed; and
 - a debug mode that makes the generated files easy to locate while a test runs.
+
+Here is a complete test using Node's built-in test runner. The fixture exists only
+for the lifetime of the test, including when the file processing or assertion throws:
+
+```js copy unit-test
+import assert from "node:assert/strict";
+import { readdir, readFile, writeFile } from "node:fs/promises";
+import { join } from "node:path";
+import { test } from "node:test";
+import { temporaryFiles } from "using-temporary-files";
+
+async function combineTextFiles(inputDirectory, outputFile) {
+  const fileNames = (await readdir(inputDirectory)).filter((fileName) =>
+    fileName.endsWith(".txt")
+  );
+  const contents = await Promise.all(
+    fileNames.map((fileName) => readFile(join(inputDirectory, fileName), "utf8"))
+  );
+  const lines = contents.flatMap((content) => content.trim().split("\n")).sort();
+
+  await writeFile(outputFile, `${lines.join("\n")}\n`);
+}
+
+test("combines text files in sorted order", async () => {
+  await using files = temporaryFiles();
+
+  await files.add("input/fruit.txt", "pear\napple\n");
+  await files.add("input/colors.txt", "violet\nblue\n");
+
+  await combineTextFiles(files.path("input"), files.path("combined.txt"));
+
+  assert.equal(
+    await files.read("combined.txt"),
+    "apple\nblue\npear\nviolet\n"
+  );
+});
+```
 
 ## Installation
 
