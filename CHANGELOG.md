@@ -1,5 +1,11 @@
 # using-temporary-files
 
+## 2.3.0
+
+### Minor Changes
+
+- c98cca4: Explicit Resource Management (using keyword) support; the callback API is deprecated
+
 ## 2.2.1
 
 ### Patch Changes
