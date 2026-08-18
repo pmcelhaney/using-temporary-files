@@ -1,10 +1,60 @@
-# using-temporary-files
+# Temporary files that clean up after themselves
 
-A utility for working with tests that need to write to / read from the file system,
-using [explicit resource management](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Resource_management).
+Tests sometimes need to touch the real file system. A compiler test may need a
+directory full of source files; an import test may need to read a configuration
+file; an end-to-end test may need to watch files appear and disappear.
 
-It creates a temporary directory, provides file operations for working in it, and
-deletes the directory when the resource is disposed.
+Creating those files is easy. Remembering to remove them is the awkward part.
+Cleanup has to happen when the test passes, when an assertion fails, and when the
+code returns early. Miss one of those paths and temporary files accumulate—or,
+worse, one test leaves state that changes the result of another.
+
+`using-temporary-files` treats a temporary directory as a resource with a defined
+lifetime. It creates an isolated directory, gives you a small set of operations
+for working inside it, and removes the entire directory when its scope ends.
+
+```js copy
+import { temporaryFiles } from "using-temporary-files";
+
+async function compileFixture() {
+  await using files = temporaryFiles();
+
+  await files.add("src/message.txt", "Hello, world!");
+  await compile(files.path("src"));
+
+  return await files.read("dist/message.txt");
+} // the temporary directory is removed here—even if compile() throws
+```
+
+## What explicit resource management means
+
+Some values represent more than data. An open file, a network connection, a lock,
+and a temporary directory all hold something that eventually needs to be released.
+The code that acquires one of these resources should also make its lifetime clear.
+
+JavaScript's [explicit resource management](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Resource_management), i.e. the `using` keyword, does that.
+
+`await using files = temporaryFiles()` says two useful things at the point of declaration:
+
+- `files` owns a disposable temporary directory.
+- The current scope owns the responsibility for cleaning it up.
+
+This is the same safety you can build with `try` / `finally`, expressed as part of
+the resource's API instead of repeated around every use.
+
+## Why use it in tests?
+
+Mocking the file system is still a good fit for most unit tests. A smaller number
+of integration and end-to-end tests should exercise the real thing, though. They
+can catch assumptions about paths, encodings, permissions, and file-system behavior
+that a mock faithfully repeats instead of challenging.
+
+For those tests, `using-temporary-files` provides:
+
+- isolation, because each call creates a new directory in the system's temp folder;
+- predictable cleanup, even when the test fails;
+- concise setup helpers that create parent directories as needed; and
+- a debug mode that makes the generated files easy to locate while a test runs.
 
 ## Installation
 
@@ -12,35 +62,28 @@ deletes the directory when the resource is disposed.
 npm install --save-dev using-temporary-files
 ```
 
-## Usage
+## Working with the temporary directory
 
-### Explicit resource management (`temporaryFiles()`)
-
-Use `temporaryFiles()` with JavaScript's `using` / `await using` declarations. The
-temporary directory is disposed automatically when the declaration's scope ends.
+The resource exposes five file operations:
 
 ```js copy
-import { temporaryFiles } from "using-temporary-files";
+await using files = temporaryFiles();
 
-async function example() {
-  await using files = temporaryFiles();
+files.path("."); // full path to the temporary directory
+files.path("path/to/file.txt"); // full path to a particular file
+files.path("a", "b", "c"); // path segments joined inside the directory
 
-  files.path("."); // full path to the temporary directory
-  files.path("file.txt"); // full path to a particular file
-  files.path("a", "b", "c"); // path segments are joined, e.g. "<tmpdir>/a/b/c"
-  await files.add("file.txt", "content"); // add a file (creates parent directories as needed)
-  const text = await files.read("file.txt"); // read the contents (encoding defaults to "utf8")
-  const binary = await files.read("file.bin", "base64"); // read with a specific encoding
-  await files.addDirectory("dir"); // add a directory (creates parent directories as needed)
-  await files.remove("file.txt"); // remove a file
-}
+await files.add("path/to/file.txt", "content"); // creates parent directories as needed
+await files.addDirectory("dir/nested"); // also creates parent directories
+const text = await files.read("file.txt"); // reads text as UTF-8
+await files.remove("file.txt");
 ```
 
-`temporaryFiles()` returns an object with the file operations `path`, `add`,
-`addDirectory`, `read`, and `remove`, plus `dispose()` / `asyncDispose()` and
-`Symbol.dispose` / `Symbol.asyncDispose`.
+## Using without `using`
 
-If `using` syntax is not available in your runtime, dispose the resource explicitly:
+`temporaryFiles()` also exposes `dispose()` / `asyncDispose()` and their
+`Symbol.dispose` / `Symbol.asyncDispose` equivalents. If `using` syntax is not
+available in your runtime, call the asynchronous disposer in a `finally` block:
 
 ```js copy
 import { temporaryFiles } from "using-temporary-files";
@@ -54,49 +97,29 @@ try {
 }
 ```
 
-### Deprecated: `usingTemporaryFiles()`
+## Finding files while debugging
 
-`usingTemporaryFiles()` is deprecated. New code should use `temporaryFiles()` so
-resource ownership and cleanup are explicit. The callback API remains available for
-backward compatibility.
-
-It accepts any number of callbacks. They share the same temporary directory and are
-called in order; the directory is deleted after the callbacks complete or one throws.
-
-```js copy
-import { usingTemporaryFiles } from "using-temporary-files";
-
-await usingTemporaryFiles(
-  async ({ add }) => {
-    await add("file.txt", "Hello, world!");
-  },
-  async ({ read }) => {
-    console.log(await read("file.txt")); // "Hello, world!"
-  }
-);
-```
-
-### Debug mode
-
-Set the environment variable `USING_TEMPORARY_FILES_DEBUG=1` to keep the temporary directory in the current working directory instead of deleting it. This is useful when you need to inspect the files after a test run.
+Set `USING_TEMPORARY_FILES_DEBUG=1` to create the temporary directory in the
+current working directory instead of the operating system's temporary directory:
 
 ```sh copy
 USING_TEMPORARY_FILES_DEBUG=1 npm test
 ```
 
+This makes the exact files your test produced easy to find while the test is running
+or paused in a debugger. Disposal still removes the directory when the resource's
+scope ends. The directory name starts with `utf-` followed by a unique identifier.
+
+## Migrating from the callback API
+
+The callback-based `usingTemporaryFiles()` API is deprecated but remains available
+for backward compatibility. See [Deprecated callback API](docs/deprecated-api.md)
+for its reference and a migration example.
+
 ## Background
 
-This code was extracted from [Counterfact](https://github.com/pmcelhaney/counterfact) so that it can be
-used in other projects. The original function was named `withTemporaryFiles()` and took a callback function. It was renamed to `usingTemporaryFiles()` in anticipation of Explicit Resource Management. Both are deprecated and will be removed in 3.0.
-
-To understand how it's used in practice, see the tests in [Counterfact](https://github.com/search?q=repo%3Apmcelhaney%2Fcounterfact%20withTemporaryFiles&type=code)
-
-## FAQ
-
-### Accessing the file system is slow. Isn't it better to mock the file system?
-
-Yes, it is. And that's what I do most of the time. But it's good to have a couple of end-to-end tests
-that exercise the real file system. This utility makes it easier to write those tests.
-
-Also, the advice about keeping the file system out of unit tests dates back to hard disk drives.
-Solid-state drives (SSDs) are much faster so the performance penalty is often small enough that it's not worth optimizing.
+This utility was extracted from
+[Counterfact](https://github.com/pmcelhaney/counterfact), where tests need both fast
+mocked file-system checks and a few realistic tests against disk. Solid-state drives
+have made those selective real-file-system tests cheap enough that clarity and
+confidence often matter more than avoiding every disk operation.
