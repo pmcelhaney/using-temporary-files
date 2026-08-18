@@ -1,2 +1,4 @@
 node_modules/
 coverage/*
+# ESLint 8 cannot parse explicit resource management syntax.
+test/markdown.test.mjs
