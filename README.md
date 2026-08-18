@@ -59,8 +59,9 @@ For those tests, `using-temporary-files` provides:
 - concise setup helpers that create parent directories as needed; and
 - a debug mode that makes the generated files easy to locate while a test runs.
 
-Here is a complete test using Node's built-in test runner. The fixture exists only
-for the lifetime of the test, including when the file processing or assertion throws:
+Here is a complete test using Node's built-in test runner. The fixture is set up
+outside the test function and disposed after the awaited test finishes, including
+when the file processing or assertion throws:
 
 ```js copy unit-test
 import assert from "node:assert/strict";
@@ -81,9 +82,9 @@ async function combineTextFiles(inputDirectory, outputFile) {
   await writeFile(outputFile, `${lines.join("\n")}\n`);
 }
 
-test("combines text files in sorted order", async () => {
-  await using files = temporaryFiles();
+await using files = temporaryFiles();
 
+await test("combines text files in sorted order", async () => {
   await files.add("input/fruit.txt", "pear\napple\n");
   await files.add("input/colors.txt", "violet\nblue\n");
 
